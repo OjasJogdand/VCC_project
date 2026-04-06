@@ -1,0 +1,15 @@
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(77, 208, 225, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 183, 77, 0.12), transparent 28%),
+    #08111f;
+}
+
+a {
+  color: inherit;
+}
