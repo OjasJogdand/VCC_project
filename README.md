@@ -69,7 +69,6 @@ This project follows the app-facing parts of 12-factor guidance:
 - Logs written to stdout/stderr
 - Local dev and production-like run commands documented
 
-It intentionally skips infrastructure-heavy items such as Docker, orchestration, and CI/CD.
 
 ## API
 
