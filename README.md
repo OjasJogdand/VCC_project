@@ -61,7 +61,7 @@ Copy `backend/.env.example` to `backend/.env`:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/mycourses
+MONGODB_URI=use-your-uri
 JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=1h
 CORS_ORIGIN=http://localhost:5173
