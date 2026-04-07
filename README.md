@@ -65,6 +65,7 @@ MONGODB_URI=use-your-uri
 JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=1h
 CORS_ORIGIN=http://localhost:5173
+GOOGLE_CLIENT_ID=__
 ```
 
 ### Installation & Running
@@ -85,6 +86,7 @@ Create `frontend/.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000
+GOOGLE_CLIENT_ID=__
 ```
 
 ### Installation & Running
