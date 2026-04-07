@@ -80,4 +80,56 @@ async function login(req, res, next) {
   }
 }
 
-export { register, login };
+async function googleLogin(req, res, next) {
+  try {
+    const { token, role } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Google token is required' });
+    }
+
+    // Validate the access token by calling Google's userinfo endpoint
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!googleRes.ok) {
+      return res.status(401).json({ message: 'Invalid Google token' });
+    }
+
+    const { sub: googleId, email, name } = await googleRes.json();
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (!user) {
+      if (!role) {
+        return res.status(400).json({ message: 'Role is required for new accounts' });
+      }
+      user = await User.create({
+        username: name || email.split('@')[0],
+        email,
+        googleId,
+        role,
+      });
+    } else if (!user.googleId) {
+      // Link Google account to existing user matched by email
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    const appToken = createToken(user);
+
+    return res.json({
+      token: appToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export { register, login, googleLogin };

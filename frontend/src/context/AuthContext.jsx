@@ -38,6 +38,14 @@ export function AuthProvider({ children }) {
         setToken(nextToken);
         setUser(nextUser);
       },
+      async googleLogin(token, role) {
+        const response = await api.post('/auth/google', { token, role });
+        const { token: nextToken, user: nextUser } = response.data;
+        localStorage.setItem('mycourses_token', nextToken);
+        localStorage.setItem('mycourses_user', JSON.stringify(nextUser));
+        setToken(nextToken);
+        setUser(nextUser);
+      },
       logout() {
         localStorage.removeItem('mycourses_token');
         localStorage.removeItem('mycourses_user');
