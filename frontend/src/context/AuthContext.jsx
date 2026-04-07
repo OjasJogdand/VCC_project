@@ -30,8 +30,8 @@ export function AuthProvider({ children }) {
         setToken(nextToken);
         setUser(nextUser);
       },
-      async register(username, password) {
-        const response = await api.post('/auth/register', { username, password });
+      async register(username, password, role) {
+        const response = await api.post('/auth/register', { username, password, role });
         const { token: nextToken, user: nextUser } = response.data;
         localStorage.setItem('mycourses_token', nextToken);
         localStorage.setItem('mycourses_user', JSON.stringify(nextUser));

@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 import Course from '../models/Course.js';
+import Enrollment from '../models/Enrollment.js';
 
 async function listCourses(req, res, next) {
   try {
-    const courses = await Course.find().sort({ createdAt: -1 });
+    const courses = await Course.find().populate('faculty', 'username').sort({ createdAt: -1 });
     return res.json(courses);
   } catch (error) {
     return next(error);
@@ -22,7 +23,7 @@ async function getCourse(req, res, next) {
       return res.status(400).json({ message: 'Invalid course id' });
     }
 
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).populate('faculty', 'username');
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
@@ -46,9 +47,11 @@ async function createCourse(req, res, next) {
       details,
       semester,
       enrollStatus: enrollStatus || 'Open',
+      faculty: req.user.userId,
     });
 
-    return res.status(201).json(course);
+    const populatedCourse = await course.populate('faculty', 'username');
+    return res.status(201).json(populatedCourse);
   } catch (error) {
     return next(error);
   }
@@ -62,14 +65,19 @@ async function updateCourse(req, res, next) {
       return res.status(400).json({ message: 'Invalid course id' });
     }
 
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    if (course.faculty.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'You can only edit your own courses' });
+    }
+
     const updatedCourse = await Course.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
-    });
-
-    if (!updatedCourse) {
-      return res.status(404).json({ message: 'Course not found' });
-    }
+    }).populate('faculty', 'username');
 
     return res.json(updatedCourse);
   } catch (error) {
@@ -85,12 +93,97 @@ async function deleteCourse(req, res, next) {
       return res.status(400).json({ message: 'Invalid course id' });
     }
 
-    const deletedCourse = await Course.findByIdAndDelete(id);
-    if (!deletedCourse) {
+    const course = await Course.findById(id);
+    if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
 
+    if (course.faculty.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'You can only delete your own courses' });
+    }
+
+    await Course.findByIdAndDelete(id);
     return res.json({ message: 'Course deleted successfully' });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function enrollCourse(req, res, next) {
+  try {
+    const { courseId } = req.body;
+
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: 'Valid course id is required' });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    if (course.enrollStatus !== 'Open') {
+      return res.status(400).json({ message: 'Course is not open for enrollment' });
+    }
+
+    const existingEnrollment = await Enrollment.findOne({
+      student: req.user.userId,
+      course: courseId,
+    });
+
+    if (existingEnrollment) {
+      return res.status(409).json({ message: 'Already enrolled in this course' });
+    }
+
+    const enrollment = await Enrollment.create({
+      student: req.user.userId,
+      course: courseId,
+    });
+
+    await enrollment.populate('course');
+    return res.status(201).json(enrollment);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getStudentEnrollments(req, res, next) {
+  try {
+    const enrollments = await Enrollment.find({ student: req.user.userId }).populate('course');
+    return res.json(enrollments);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function unenrollCourse(req, res, next) {
+  try {
+    const { enrollmentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(enrollmentId)) {
+      return res.status(400).json({ message: 'Invalid enrollment id' });
+    }
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      return res.status(404).json({ message: 'Enrollment not found' });
+    }
+
+    if (enrollment.student.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'You can only unenroll from your own enrollments' });
+    }
+
+    await Enrollment.findByIdAndDelete(enrollmentId);
+    return res.json({ message: 'Unenrolled successfully' });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getFacultyCourses(req, res, next) {
+  try {
+    const courses = await Course.find({ faculty: req.user.userId }).populate('faculty', 'username').sort({ createdAt: -1 });
+    return res.json(courses);
   } catch (error) {
     return next(error);
   }
@@ -102,4 +195,8 @@ export {
   createCourse,
   updateCourse,
   deleteCourse,
+  enrollCourse,
+  getStudentEnrollments,
+  unenrollCourse,
+  getFacultyCourses,
 };

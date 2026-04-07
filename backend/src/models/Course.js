@@ -24,6 +24,11 @@ const courseSchema = new mongoose.Schema(
       enum: ['Open', 'Closed', 'Waitlist'],
       default: 'Open',
     },
+    faculty: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     timestamps: true,

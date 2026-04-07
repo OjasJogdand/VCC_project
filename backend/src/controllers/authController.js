@@ -4,17 +4,21 @@ import User from '../models/User.js';
 import { getRequiredEnv, getEnv } from '../config/env.js';
 
 function createToken(user) {
-  return jwt.sign({ userId: user._id, username: user.username }, getRequiredEnv('JWT_SECRET'), {
+  return jwt.sign({ userId: user._id, username: user.username, role: user.role }, getRequiredEnv('JWT_SECRET'), {
     expiresIn: getEnv('JWT_EXPIRES_IN', '1h'),
   });
 }
 
 async function register(req, res, next) {
   try {
-    const { username, password } = req.body;
+    const { username, password, role } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
+    if (!username || !password || !role) {
+      return res.status(400).json({ message: 'Username, password, and role are required' });
+    }
+
+    if (!['faculty', 'student'].includes(role)) {
+      return res.status(400).json({ message: 'Role must be faculty or student' });
     }
 
     if (password.length < 6) {
@@ -27,7 +31,7 @@ async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, passwordHash });
+    const user = await User.create({ username, passwordHash, role });
     const token = createToken(user);
 
     return res.status(201).json({
@@ -35,6 +39,7 @@ async function register(req, res, next) {
       user: {
         id: user._id,
         username: user.username,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -67,6 +72,7 @@ async function login(req, res, next) {
       user: {
         id: user._id,
         username: user.username,
+        role: user.role,
       },
     });
   } catch (error) {
